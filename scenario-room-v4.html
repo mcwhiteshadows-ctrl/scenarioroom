@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenario Room — Atlas Shield</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+  --bg:#0e1219;--surface:#161c28;--surface2:#1c2333;--surface3:#222b3f;
+  --border:#273040;--border2:#2f3a52;
+  --text:#e8eeff;--muted:#6a7a9a;--muted2:#92a4c5;
+  --accent:#c6f135;--red:#ff5e5e;--orange:#ffb347;--yellow:#ffd666;
+  --neutral:#e879f9;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);font-family:'JetBrains Mono',monospace;color:var(--text);min-height:100vh;overflow-x:hidden}
+body::after{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(198,241,53,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(198,241,53,.018) 1px,transparent 1px);background-size:60px 60px;pointer-events:none;z-index:0}
+.wrap{max-width:1480px;margin:0 auto;padding:24px;position:relative;z-index:1}
+
+/* STATUS BAR */
+.sbar{display:flex;align-items:stretch;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden;font-size:.62rem;flex-wrap:wrap}
+.sbar-item{display:flex;align-items:center;gap:6px;padding:9px 14px;border-right:1px solid var(--border);white-space:nowrap;cursor:default;transition:background .15s}
+.sbar-item:hover{background:var(--surface2)}
+.sbar-label{color:var(--muted);font-size:.57rem;letter-spacing:.04em}
+.sbar-val{font-weight:700;font-size:.72rem}
+.up{color:var(--accent)}.down{color:var(--red)}.warn{color:var(--yellow)}.neutral{color:var(--neutral)}
+.live-pill{display:flex;align-items:center;gap:7px;padding:9px 14px;margin-left:auto;border-left:1px solid var(--border);white-space:nowrap}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* HEADER */
+.header{margin-bottom:22px}
+.header-top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:4px}
+.header-tag{font-size:.6rem;letter-spacing:.15em;color:var(--muted);margin-bottom:6px}
+.header-title{font-family:'Syne',sans-serif;font-size:2.8rem;font-weight:800;letter-spacing:-.02em;line-height:1}
+.header-title span{color:var(--accent)}
+.header-sub{font-size:.6rem;color:var(--muted);margin-top:6px}
+.header-actions{display:flex;gap:8px;align-items:center}
+.btn{background:var(--surface);border:1px solid var(--border);color:var(--text);padding:7px 14px;border-radius:6px;font-family:'JetBrains Mono',monospace;font-size:.62rem;cursor:pointer;transition:all .15s;letter-spacing:.04em}
+.btn:hover{background:var(--surface2);border-color:var(--border2)}
+.btn-accent{background:var(--accent);color:#0e1219;border-color:var(--accent);font-weight:700}
+.btn-accent:hover{opacity:.85}
+
+/* MAIN GRID */
+.main-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+/* CARD BASE */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px}
+.card-label{font-size:.58rem;letter-spacing:.14em;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.card-label::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* TERMOMETRO */
+.score-row{display:flex;align-items:baseline;gap:12px;margin-bottom:20px}
+.score-num{font-family:'Syne',sans-serif;font-size:64px;font-weight:800;line-height:1;transition:color .5s}
+.score-meta{font-size:.6rem;color:var(--muted);line-height:1.8}
+
+.blk-track{display:flex;gap:3px;margin-bottom:7px}
+.blk{height:20px;flex:1;border-radius:2px;transition:opacity .3s}
+.blk-labels{display:flex;justify-content:space-between;font-size:.55rem;color:var(--muted);margin-bottom:22px}
+
+/* INDICATORS GRID */
+.ind-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px}
+.ind{background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px 13px}
+.ind-name{font-size:.55rem;letter-spacing:.1em;color:var(--muted);margin-bottom:7px}
+.ind-val{font-size:1.15rem;font-weight:700;margin-bottom:5px;transition:color .4s}
+.ind-chg{font-size:.58rem;color:var(--muted)}
+.ind-bar{height:3px;border-radius:2px;background:var(--border);margin-top:7px;overflow:hidden}
+.ind-fill{height:100%;border-radius:2px;transition:width .8s}
+
+/* SCENARIO BOX */
+.scenario-box{border:1px solid var(--border);border-radius:8px;padding:14px 16px;transition:border-color .5s,background .5s}
+.scenario-box.risk-on{border-color:rgba(198,241,53,.4);background:rgba(198,241,53,.04)}
+.scenario-box.neutral{border-color:rgba(255,179,71,.4);background:rgba(255,179,71,.04)}
+.scenario-box.hawkish{border-color:rgba(61,139,255,.4);background:rgba(61,139,255,.04)}
+.scenario-box.risk-off{border-color:rgba(255,94,94,.4);background:rgba(255,94,94,.04)}
+.sc-name{font-family:'Syne',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:5px;letter-spacing:.02em;transition:color .5s}
+.sc-desc{font-size:.6rem;color:var(--muted2);line-height:1.7}
+
+/* EVENTI CARD */
+.cd-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.cd-box{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px 15px}
+.cd-label{font-size:.55rem;letter-spacing:.1em;color:var(--muted);margin-bottom:5px}
+.cd-time{font-size:1.6rem;font-weight:700;color:var(--yellow);font-family:'Syne',sans-serif;letter-spacing:.02em}
+.cd-sub{font-size:.55rem;color:var(--muted);margin-top:3px}
+
+/* CME FEDWATCH */
+.fedwatch{margin-bottom:20px}
+.fw-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.fw-label{font-size:.58rem;color:var(--muted2);width:90px;flex-shrink:0}
+.fw-bar-wrap{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.fw-fill{height:100%;border-radius:3px;background:var(--accent);transition:width .8s}
+.fw-pct{font-size:.62rem;font-weight:700;width:35px;text-align:right;color:var(--text)}
+
+/* CALENDARIO */
+.cal-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border)}
+.cal-row:last-child{border-bottom:none}
+.cal-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.cal-dot.hi{background:var(--red);box-shadow:0 0 5px var(--red)}
+.cal-dot.md{background:var(--yellow)}
+.cal-dot.lo{background:var(--muted)}
+.cal-name{font-size:.62rem;font-weight:500;flex:1;color:var(--text)}
+.cal-date{font-size:.58rem;color:var(--muted)}
+.cal-pill{font-size:.55rem;padding:2px 8px;border-radius:10px;white-space:nowrap}
+.p-red{background:rgba(255,94,94,.15);color:var(--red);border:1px solid rgba(255,94,94,.3)}
+.p-amb{background:rgba(255,215,102,.1);color:var(--yellow);border:1px solid rgba(255,215,102,.2)}
+.p-gry{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+
+.alert-box{margin-top:14px;padding:10px 14px;background:rgba(255,94,94,.07);border:1px solid rgba(255,94,94,.25);border-radius:7px;font-size:.58rem;color:var(--muted2);display:none}
+.alert-box span{color:var(--red);font-weight:700}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- STATUS BAR -->
+  <div class="sbar">
+    <div class="sbar-item"><span class="sbar-label">SPY</span><span class="sbar-val" id="sb-spy">—</span><span id="sbc-spy" class="neutral">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">QQQ</span><span class="sbar-val" id="sb-qqq">—</span><span id="sbc-qqq" class="neutral">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">IWM</span><span class="sbar-val" id="sb-iwm">—</span><span id="sbc-iwm" class="neutral">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">VIX</span><span class="sbar-val" id="sb-vix">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">DXY</span><span class="sbar-val" id="sb-dxy">—</span><span id="sbc-dxy">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">US10Y</span><span class="sbar-val" id="sb-10y">—</span><span id="sbc-10y">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">GOLD</span><span class="sbar-val neutral" id="sb-gld">—</span><span id="sbc-gld" class="neutral">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">CPI</span><span class="sbar-val" id="sb-cpi">—</span></div>
+    <div class="sbar-item"><span class="sbar-label">PPI</span><span class="sbar-val" id="sb-ppi">—</span></div>
+    <div class="live-pill">
+      <div class="live-dot"></div>
+      <span id="liveLabel" style="font-size:.58rem;color:var(--muted)">LIVE FINNHUB</span>
+      <span style="font-size:.55rem;color:var(--muted);margin-left:6px" id="lastUpd">—</span>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="header-tag">// MACRO INTELLIGENCE DASHBOARD</div>
+        <div class="header-title">SCENARIO<span>_</span>ROOM</div>
+        <div class="header-sub">Capire i mercati prima che accada · macro & rotazione settoriale</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-accent" onclick="forceRefresh()"><i class="fas fa-rotate-right"></i> Aggiorna</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- SINISTRA: TERMOMETRO -->
+    <div class="card">
+      <div class="card-label">// TERMOMETRO DI MERCATO</div>
+
+      <div class="score-row">
+        <div class="score-num" id="scoreNum">—</div>
+        <div class="score-meta">/ 100<br>STRESS INDEX</div>
+      </div>
+
+      <!-- BARRA A BLOCCHI -->
+      <div class="blk-track" id="blkTrack"></div>
+      <div class="blk-labels">
+        <span>0 — RISK ON</span>
+        <span>50 — NEUTRO</span>
+        <span>100 — RISK OFF</span>
+      </div>
+
+      <!-- INDICATORI -->
+      <div class="ind-grid">
+        <div class="ind">
+          <div class="ind-name">VIX</div>
+          <div class="ind-val" id="iv-vix">—</div>
+          <div class="ind-chg" id="ic-vix">&lt;16 verde · &gt;25 rosso</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-vix" style="width:0%"></div></div>
+        </div>
+        <div class="ind">
+          <div class="ind-name">CPI</div>
+          <div class="ind-val" id="iv-cpi">—</div>
+          <div class="ind-chg" id="ic-cpi">&lt;2.5% verde · &gt;3.5% rosso</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-cpi" style="width:0%"></div></div>
+        </div>
+        <div class="ind">
+          <div class="ind-name">PPI</div>
+          <div class="ind-val" id="iv-ppi">—</div>
+          <div class="ind-chg" id="ic-ppi">&lt;2.5% verde · &gt;3.5% rosso</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-ppi" style="width:0%"></div></div>
+        </div>
+        <div class="ind">
+          <div class="ind-name">US10Y</div>
+          <div class="ind-val" id="iv-10y">—</div>
+          <div class="ind-chg" id="ic-10y">var. giornaliera</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-10y" style="width:0%"></div></div>
+        </div>
+        <div class="ind">
+          <div class="ind-name">DXY</div>
+          <div class="ind-val" id="iv-dxy">—</div>
+          <div class="ind-chg" id="ic-dxy">var. giornaliera</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-dxy" style="width:0%"></div></div>
+        </div>
+        <div class="ind">
+          <div class="ind-name">GOLD</div>
+          <div class="ind-val neutral" id="iv-gld">—</div>
+          <div class="ind-chg" id="ic-gld">dato neutro</div>
+          <div class="ind-bar"><div class="ind-fill" id="ib-gld" style="width:0%;background:var(--neutral)"></div></div>
+        </div>
+      </div>
+
+      <!-- SCENARIO -->
+      <div class="scenario-box neutral" id="scenBox">
+        <div class="sc-name" id="scenName">ANALISI IN CORSO...</div>
+        <div class="sc-desc" id="scenDesc">Caricamento dati di mercato in corso.</div>
+      </div>
+    </div>
+
+    <!-- DESTRA: EVENTI -->
+    <div class="card">
+      <div class="card-label">// EVENTI MACRO</div>
+
+      <!-- COUNTDOWN FOMC + PCE -->
+      <div class="cd-grid">
+        <div class="cd-box">
+          <div class="cd-label">// PROSSIMO MEETING</div>
+          <div style="font-size:.7rem;color:var(--accent);margin-bottom:4px" id="fomcName">🔨 FOMC</div>
+          <div class="cd-time" id="fomcTimer">—</div>
+          <div class="cd-sub" id="fomcSub">No taglio atteso: 96%</div>
+        </div>
+        <div class="cd-box">
+          <div class="cd-label">// RILASCIO DATO</div>
+          <div style="font-size:.7rem;color:var(--accent);margin-bottom:4px" id="pceName">📊 PCE</div>
+          <div class="cd-time" id="pceTimer">—</div>
+          <div class="cd-sub" id="pceSub">Prev. core: 2.6%</div>
+        </div>
+      </div>
+
+      <!-- CME FEDWATCH -->
+      <div class="card-label" style="margin-bottom:12px">// CME FEDWATCH — PROBABILITÀ</div>
+      <div class="fedwatch">
+        <div class="fw-row">
+          <span class="fw-label">Nessun taglio</span>
+          <div class="fw-bar-wrap"><div class="fw-fill" style="width:96%"></div></div>
+          <span class="fw-pct up">96%</span>
+        </div>
+        <div class="fw-row">
+          <span class="fw-label">-25bps</span>
+          <div class="fw-bar-wrap"><div class="fw-fill" style="width:4%;background:var(--yellow)"></div></div>
+          <span class="fw-pct warn">4%</span>
+        </div>
+        <div class="fw-row">
+          <span class="fw-label">+25bps</span>
+          <div class="fw-bar-wrap"><div class="fw-fill" style="width:0%;background:var(--red)"></div></div>
+          <span class="fw-pct down">0%</span>
+        </div>
+      </div>
+
+      <!-- CALENDARIO DA SUPABASE -->
+      <div class="card-label" style="margin-bottom:12px">// PROSSIMI EVENTI MACRO</div>
+      <div id="calRows">
+        <div style="font-size:.6rem;color:var(--muted);padding:16px 0;text-align:center">
+          <i class="fas fa-spinner fa-spin"></i> Caricamento...
+        </div>
+      </div>
+
+      <div class="alert-box" id="alertBox">
+        <span>⚠ ALERT: </span><span id="alertText"></span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════
+//  CONFIG
+// ═══════════════════════════
+const FH  = 'd7oas1pr01qsb7be8rn0d7oas1pr01qsb7be8rng';
+const SBU = 'https://qqjgrfdhwtwidhvhhlrl.supabase.co';
+const SBK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFxamdyZmRod3R3aWRodmhobHJsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5MTAyNTUsImV4cCI6MjA4OTQ4NjI1NX0.fYwHlT5mla1tuq1WyxeNKj2jq88JpK7rPkGAS86swEA';
+
+const SYMS = ['SPY','QQQ','IWM','VIX','USDOLLAR','US10Y','GLD'];
+let CPI = 3.2, PPI = 2.1;
+let sbEvents = null;
+let timerInterval = null;
+
+// ═══════════════════════════
+//  FETCH FINNHUB
+// ═══════════════════════════
+async function fetchFH(sym){
+  const r = await fetch(`https://finnhub.io/api/v1/quote?symbol=${sym}&token=${FH}`);
+  return r.json();
+}
+
+async function loadPrices(){
+  const map = {SPY:'SPY',QQQ:'QQQ',IWM:'IWM',VIX:'VIX',DXY:'USDOLLAR','10Y':'US10Y',GLD:'GLD'};
+  const res = await Promise.allSettled(
+    Object.entries(map).map(([k,s])=>fetchFH(s).then(d=>({k,d})))
+  );
+  const out = {};
+  res.forEach(r=>{ if(r.status==='fulfilled'&&r.value.d.c) out[r.value.k]=r.value.d; });
+  return out;
+}
+
+async function loadMacro(){
+  try{
+    const [cr,pr]=await Promise.all([
+      fetch(`https://finnhub.io/api/v1/economic?code=USCPI&token=${FH}`),
+      fetch(`https://finnhub.io/api/v1/economic?code=USPPI&token=${FH}`)
+    ]);
+    const cd=await cr.json(); const pd=await pr.json();
+    if(Array.isArray(cd)&&cd.length) CPI=cd[cd.length-1].value;
+    if(Array.isArray(pd)&&pd.length) PPI=pd[pd.length-1].value;
+  }catch(e){}
+}
+
+async function loadCalendar(){
+  const today=new Date().toISOString().slice(0,10);
+  const r=await fetch(`${SBU}/rest/v1/eventi_macro?data=gte.${today}&order=data.asc&limit=10`,
+    {headers:{'apikey':SBK,'Authorization':`Bearer ${SBK}`}});
+  return r.json();
+}
+
+// ═══════════════════════════
+//  COLORI INDICATORI
+// ═══════════════════════════
+function vixColor(v){
+  if(v<16) return 'var(--accent)';
+  if(v<25) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function inflColor(v){
+  if(v<2.5) return 'var(--accent)';
+  if(v<3.5) return 'var(--yellow)';
+  return 'var(--red)';
+}
+function chgColor(pct){
+  return pct>=0 ? 'var(--red)' : 'var(--accent)';
+}
+
+// ═══════════════════════════
+//  STRESS INDEX
+// ═══════════════════════════
+function calcStress(p){
+  let s=0;
+  const vix = p.VIX?.c||0;
+  const t10y = p['10Y']?.c||0;
+  const dxy  = p.DXY?.c||100;
+  if(vix>40) s+=40; else if(vix>30) s+=30; else if(vix>20) s+=20; else if(vix>16) s+=12; else s+=4;
+  if(t10y>5) s+=25; else if(t10y>4.5) s+=18; else if(t10y>4) s+=10; else s+=4;
+  if(CPI>4)  s+=20; else if(CPI>3) s+=13; else if(CPI>2.5) s+=7; else s+=2;
+  if(dxy>107) s+=15; else if(dxy>104) s+=8; else s+=2;
+  return Math.min(100,Math.max(0,Math.round(s)));
+}
+
+// ═══════════════════════════
+//  RENDER STATUS BAR
+// ═══════════════════════════
+function fmt(v,d=2){ return v!=null?v.toFixed(d):'—'; }
+function pctStr(v){ return v!=null?(v>=0?'+':'')+v.toFixed(2)+'%':'—'; }
+
+function renderStatusBar(p){
+  const pairs=[
+    ['spy','SPY',2,'neutral'],['qqq','QQQ',2,'neutral'],['iwm','IWM',2,'neutral'],
+  ];
+  pairs.forEach(([id,sym,dec,cls])=>{
+    const q=p[sym]; if(!q) return;
+    document.getElementById('sb-'+id).textContent=fmt(q.c,dec);
+    const cel=document.getElementById('sbc-'+id);
+    if(cel){ cel.textContent=pctStr(q.c&&q.pc?(q.c-q.pc)/q.pc*100:0); cel.className=cls; }
+  });
+  const vix=p.VIX; if(vix) document.getElementById('sb-vix').textContent=fmt(vix.c,1);
+  const dxy=p.DXY;
+  if(dxy){
+    document.getElementById('sb-dxy').textContent=fmt(dxy.c,2);
+    const chg=dxy.pc?(dxy.c-dxy.pc)/dxy.pc*100:0;
+    const el=document.getElementById('sbc-dxy');
+    el.textContent=pctStr(chg); el.className=chg>=0?'down':'up';
+  }
+  const t10y=p['10Y'];
+  if(t10y){
+    document.getElementById('sb-10y').textContent=fmt(t10y.c,2)+'%';
+    const chg=t10y.pc?(t10y.c-t10y.pc)/t10y.pc*100:0;
+    const el=document.getElementById('sbc-10y');
+    el.textContent=pctStr(chg); el.className=chg>=0?'down':'up';
+  }
+  const gld=p.GLD; if(gld){
+    document.getElementById('sb-gld').textContent=fmt(gld.c,0);
+    const el=document.getElementById('sbc-gld');
+    const chg=gld.pc?(gld.c-gld.pc)/gld.pc*100:0;
+    el.textContent=pctStr(chg); el.className='neutral';
+  }
+  document.getElementById('sb-cpi').textContent=CPI.toFixed(1)+'%';
+  document.getElementById('sb-cpi').className='sbar-val '+inflColor(CPI).replace('var(--','').replace(')','');
+  document.getElementById('sb-ppi').textContent=PPI.toFixed(1)+'%';
+  document.getElementById('sb-ppi').className='sbar-val '+inflColor(PPI).replace('var(--','').replace(')','');
+
+  const now=new Date();
+  document.getElementById('lastUpd').textContent='agg. '+now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ═══════════════════════════
+//  RENDER TERMOMETRO
+// ═══════════════════════════
+function renderThermo(p, stress){
+  // Score
+  const sn=document.getElementById('scoreNum');
+  const col = stress<35?'var(--accent)':stress<65?'var(--yellow)':'var(--red)';
+  sn.textContent=stress; sn.style.color=col;
+
+  // Barra blocchi
+  const track=document.getElementById('blkTrack');
+  const N=28;
+  const filled=Math.round(stress/100*N);
+  let html='';
+  for(let i=0;i<N;i++){
+    let bg;
+    if(i>=filled) bg='background:var(--surface2);opacity:0.4';
+    else{
+      const pct=(i/N)*100;
+      if(pct<35) bg='background:#639922';
+      else if(pct<65) bg='background:#EF9F27';
+      else bg='background:#ff5e5e';
+    }
+    html+=`<div class="blk" style="${bg}"></div>`;
+  }
+  track.innerHTML=html;
+
+  // Indicatori
+  const vix=p.VIX?.c||0;
+  const t10y=p['10Y']?.c||0;
+  const dxy=p.DXY?.c||0;
+  const gld=p.GLD?.c||0;
+  const t10yChg=p['10Y']?.pc?(p['10Y'].c-p['10Y'].pc)/p['10Y'].pc*100:0;
+  const dxyChg=p.DXY?.pc?(p.DXY.c-p.DXY.pc)/p.DXY.pc*100:0;
+  const gldChg=p.GLD?.pc?(p.GLD.c-p.GLD.pc)/p.GLD.pc*100:0;
+
+  function setInd(id, val, color, chgLabel, barW){
+    document.getElementById('iv-'+id).textContent=val;
+    document.getElementById('iv-'+id).style.color=color;
+    document.getElementById('ic-'+id).textContent=chgLabel;
+    document.getElementById('ib-'+id).style.width=barW+'%';
+    document.getElementById('ib-'+id).style.background=color;
+  }
+
+  setInd('vix', fmt(vix,1), vixColor(vix),
+    vix<16?'basso · risk-on':vix<25?'moderato · cautela':'alto · risk-off',
+    Math.min(100,vix/40*100));
+  setInd('cpi', CPI.toFixed(1)+'%', inflColor(CPI),
+    CPI<2.5?'sotto target Fed':CPI<3.5?'sopra target · cautela':'critico · Fed hawkish',
+    Math.min(100,CPI/5*100));
+  setInd('ppi', PPI.toFixed(1)+'%', inflColor(PPI),
+    PPI<2.5?'produzione stabile':PPI<3.5?'pressione costi':'inflazione in arrivo',
+    Math.min(100,PPI/5*100));
+  setInd('10y', fmt(t10y,2)+'%', chgColor(t10yChg),
+    (t10yChg>=0?'↑ ':'↓ ')+Math.abs(t10yChg).toFixed(2)+'% oggi',
+    Math.min(100,(t10y-2)/4*100));
+  setInd('dxy', fmt(dxy,2), chgColor(dxyChg),
+    (dxyChg>=0?'↑ ':'↓ ')+Math.abs(dxyChg).toFixed(2)+'% oggi',
+    Math.min(100,(dxy-90)/30*100));
+
+  // Gold neutro
+  document.getElementById('iv-gld').textContent=fmt(gld,0);
+  document.getElementById('ic-gld').textContent=(gldChg>=0?'↑ +':'↓ ')+Math.abs(gldChg).toFixed(2)+'% · dato neutro';
+  document.getElementById('ib-gld').style.width=Math.min(100,gld/3500*100)+'%';
+
+  // Scenario box
+  let cls,name,desc;
+  if(stress<25){
+    cls='risk-on'; name='RISK-ON — BULLISH';
+    desc='Mercato sereno. VIX basso, inflazione sotto controllo. Favorisce QQQ, IWM, growth.';
+  } else if(stress<45){
+    cls='risk-on'; name='RISK-ON MODERATO';
+    desc='Condizioni positive con qualche cautela. Posizionamento bilanciato su SPY e settori ciclici.';
+  } else if(stress<60){
+    cls='neutral'; name='NEUTRO — IN ATTESA';
+    desc='Mercato laterale. Nessuna direzione chiara. Favorisce opzioni vendute e difensivi.';
+  } else if(stress<75){
+    cls='hawkish'; name='HAWKISH — SOTTO PRESSIONE';
+    desc='Fed restrittiva, tassi alti penalizzano tech e growth. Favorisce XLF, DXY, value.';
+  } else {
+    cls='risk-off'; name='RISK-OFF — DIFENSIVO';
+    desc='Alta tensione. VIX elevato, fuga verso rifugio. Favorisce Gold, TLT, XLP, XLU, Cash.';
+  }
+  const box=document.getElementById('scenBox');
+  box.className='scenario-box '+cls;
+  const nameCol=cls==='risk-on'?'var(--accent)':cls==='neutral'?'var(--yellow)':cls==='hawkish'?'#3d8bff':'var(--red)';
+  document.getElementById('scenName').textContent=name;
+  document.getElementById('scenName').style.color=nameCol;
+  document.getElementById('scenDesc').textContent=desc;
+}
+
+// ═══════════════════════════
+//  RENDER CALENDARIO
+// ═══════════════════════════
+function renderCalendar(events){
+  if(!Array.isArray(events)||!events.length){
+    document.getElementById('calRows').innerHTML='<div style="font-size:.6rem;color:var(--muted);padding:16px 0;text-align:center">Nessun evento trovato</div>';
+    return;
+  }
+  sbEvents=events;
+  const now=Date.now();
+  const DAYS=['DOM','LUN','MAR','MER','GIO','VEN','SAB'];
+  const MONTHS=['GEN','FEB','MAR','APR','MAG','GIU','LUG','AGO','SET','OTT','NOV','DIC'];
+
+  let html=''; let urgentNames=[];
+  events.slice(0,9).forEach(ev=>{
+    const d=new Date(ev.data+'T12:00:00');
+    const diff=Math.ceil((d-now)/86400000);
+    const dt=diff<=0?'Oggi':diff===1?'Domani':`${diff}g`;
+    const isSoon=diff>=0&&diff<=2;
+    const score=ev.spy||0;
+    const dotCls=score>=25?'hi':score>=10?'md':'lo';
+    const pillCls=diff<=0?'p-red':diff<=2?'p-red':diff<=7?'p-amb':'p-gry';
+    const ds=`${DAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`;
+    if(isSoon&&score>=20) urgentNames.push(ev.nome);
+    html+=`<div class="cal-row">
+      <div class="cal-dot ${dotCls}"></div>
+      <span class="cal-name">${ev.nome}</span>
+      <span class="cal-date">${ds}</span>
+      <span class="cal-pill ${pillCls}">${dt}</span>
+    </div>`;
+  });
+  document.getElementById('calRows').innerHTML=html;
+
+  if(urgentNames.length){
+    const ab=document.getElementById('alertBox');
+    document.getElementById('alertText').textContent=urgentNames.join(' + ')+' · alta volatilità attesa';
+    ab.style.display='block';
+  }
+
+  updateTimers(events);
+}
+
+// ═══════════════════════════
+//  TIMER FOMC / PCE
+// ═══════════════════════════
+function fmtTimer(ms){
+  if(ms<=0) return '<span style="color:var(--accent)">IN CORSO</span>';
+  const d=Math.floor(ms/86400000);
+  const h=Math.floor((ms%86400000)/3600000);
+  const m=Math.floor((ms%3600000)/60000);
+  if(d>0) return `${d}g ${h}h`;
+  if(h>0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function updateTimers(events){
+  if(!events) return;
+  const now=Date.now();
+  const fomc=events.find(e=>e.categoria==='FOMC'||e.nome?.includes('FOMC'));
+  const pce =events.find(e=>e.categoria==='PCE' ||e.nome?.includes('PCE'));
+  const MONTHS=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+
+  if(fomc){
+    const fd=new Date(fomc.data+'T18:00:00Z')-now;
+    document.getElementById('fomcTimer').innerHTML=fmtTimer(fd);
+    const d=new Date(fomc.data);
+    document.getElementById('fomcName').textContent='🔨 FOMC — '+d.getDate()+' '+MONTHS[d.getMonth()];
+  }
+  if(pce){
+    const pd=new Date(pce.data+'T12:30:00Z')-now;
+    document.getElementById('pceTimer').innerHTML=fmtTimer(pd);
+    const d=new Date(pce.data);
+    document.getElementById('pceName').textContent='📊 PCE — '+d.getDate()+' '+MONTHS[d.getMonth()];
+  }
+}
+
+// ═══════════════════════════
+//  MAIN LOAD
+// ═══════════════════════════
+async function loadAll(){
+  try{
+    const [prices, calendar] = await Promise.all([
+      loadPrices(),
+      loadCalendar(),
+      loadMacro()
+    ]);
+    const stress=calcStress(prices);
+    renderStatusBar(prices);
+    renderThermo(prices, stress);
+    renderCalendar(Array.isArray(calendar)?calendar:[]);
+  } catch(e){
+    console.error(e);
+    document.getElementById('liveLabel').textContent='ERRORE DATI';
+  }
+}
+
+function forceRefresh(){
+  loadAll();
+}
+
+// Timer live ogni secondo
+if(timerInterval) clearInterval(timerInterval);
+timerInterval=setInterval(()=>{ if(sbEvents) updateTimers(sbEvents); },1000);
+
+// Auto-refresh ogni 5 minuti
+setInterval(loadAll,5*60*1000);
+
+loadAll();
+</script>
+</body>
+</html>
